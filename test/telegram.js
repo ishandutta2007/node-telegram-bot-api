@@ -1041,7 +1041,7 @@ describe('TelegramBot', function telegramSuite() {
       const photo = `${__dirname}/data/photo.gif`;
       return tgbot.sendPhoto(USERID, photo).catch(err => {
         // TODO: check for error in a better way
-        assert.ok(err.response.body.indexOf('Bad Request') !== -1);
+        assert.ok(err.response.body.description.indexOf('Bad Request') !== -1);
       });
     });
     it('should allow stream.path that can not be parsed', function test() {
