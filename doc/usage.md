@@ -157,8 +157,17 @@ Every `Error` object we pass back has the properties:
   * value is `EFATAL` if error was fatal e.g. network error
   * value is `EPARSE` if response body could **not** be parsed
   * value is `ETELEGRAM` if error was returned from Telegram servers
-* `response` [http.IncomingMessage](https://nodejs.org/api/http.html#http_class_http_incomingmessage):
+* `response` ([http.IncomingMessage](https://nodejs.org/api/http.html#http_class_http_incomingmessage)):
   * available if `error.code` is **not** `EFATAL`
 * `response.body` (String|Object): Error response from Telegram
   * type is `String` if `error.code` is `EPARSE`
   * type is `Object` if `error.code` is `ETELEGRAM`
+
+For example, sending message to a non-existent user:
+
+```js
+bot.sendMessage(nonExistentUserId, 'text').catch(error => {
+  console.log(error.code);  // => 'ETELEGRAM'
+  console.log(error.response.body); // => { ok: false, error_code: 400, description: 'Bad Request: chat not found' }
+});
+```
