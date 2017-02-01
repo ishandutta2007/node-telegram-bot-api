@@ -27,6 +27,7 @@ const pollingPort = portindex++;
 const webHookPort = portindex++;
 const pollingPort2 = portindex++;
 const webHookPort2 = portindex++;
+const badTgServerPort = portindex++;
 const staticUrl = `http://127.0.0.1:${staticPort}`;
 const key = `${__dirname}/../examples/key.pem`;
 const cert = `${__dirname}/../examples/crt.pem`;
@@ -39,6 +40,8 @@ before(function beforeAll() {
   return utils.startMockServer(pollingPort)
     .then(() => {
       return utils.startMockServer(pollingPort2);
+    }).then(() => {
+      return utils.startMockServer(badTgServerPort, { bad: true });
     });
 });
 
@@ -182,6 +185,50 @@ describe('TelegramBot', function telegramSuite() {
         },
       });
       return utils.sendWebHookMessage(port, TOKEN, { https: true });
+    });
+  });
+
+  describe('errors', function errorsSuite() {
+    const botParse = new TelegramBot('useless-token', {
+      baseApiUrl: `http://localhost:${badTgServerPort}`,
+    });
+    it('have prop "code" set to "EFATAL" if error is fatal', function test() {
+      const myBot = new TelegramBot('useless-token', {
+        baseApiUrl: 'http://localhost:23', // are we sure this port is free?
+      });
+      return myBot.getMe().catch(error => {
+        assert.equal(error.code, 'EFATAL');
+      });
+    });
+    it('have prop "code" set to "EPARSE" if response body could not be parsed', function test() {
+      botParse.sendMessage(USERID, 'text').catch(error => {
+        assert.equal(error.code, 'EPARSE');
+      });
+    });
+    it('have prop "code" set to "ETELEGRAM" if error is from Telegram', function test() {
+      return bot.sendMessage('404', 'text').catch(error => {
+        assert.equal(error.code, 'ETELEGRAM');
+      });
+    });
+    it('always contain the prop "response" for EPARSE', function test() {
+      return botParse.sendMessage(USERID, 'text').catch(error => {
+        assert.ok(typeof error.response === 'object');
+      });
+    });
+    it('always contain the prop "response" for ETELEGRAM', function test() {
+      return bot.sendMessage('404', 'text').catch(error => {
+        assert.ok(typeof error.response === 'object');
+      });
+    });
+    it('have prop "response.body" of type "String" for EPARSE', function test() {
+      return botParse.sendMessage(USERID, 'text').catch(error => {
+        assert.ok(typeof error.response.body === 'string');
+      });
+    });
+    it('have prop "response.body" of type "Object" for ETELEGRAM', function test() {
+      return bot.sendMessage('404', 'text').catch(error => {
+        assert.ok(typeof error.response.body === 'object');
+      });
     });
   });
 

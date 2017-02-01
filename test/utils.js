@@ -55,6 +55,9 @@ exports = module.exports = {
   /**
    * Start a mock server at the specified port.
    * @param  {Number} port
+   * @param  {Object} [options]
+   * @param  {Boolean} [options.bad=false] Bad Mock Server; responding with
+   *  unparseable messages
    * @return {Promise}
    */
   startMockServer,
@@ -76,10 +79,13 @@ const statics = require('node-static');
 const servers = {};
 
 
-function startMockServer(port) {
+function startMockServer(port, options = {}) {
   assert.ok(port);
   const server = http.Server((req, res) => {
     servers[port].polling = true;
+    if (options.bad) {
+      return res.end('can not be parsed with JSON.parse()');
+    }
     return res.end(JSON.stringify({
       ok: true,
       result: [{

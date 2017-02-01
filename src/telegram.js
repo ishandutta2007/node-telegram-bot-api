@@ -154,18 +154,15 @@ class TelegramBot extends EventEmitter {
     debug('HTTP request: %j', options);
     return request(options)
       .then(resp => {
-        if (resp.statusCode !== 200) {
-          const error = new Error(`${resp.statusCode} ${resp.body}`);
-          error.response = resp;
-          throw error;
-        }
-
         let data;
 
         try {
           data = JSON.parse(resp.body);
         } catch (err) {
+          // if we could not parse the response, we consider it a fatal
+          // error, probably a network error such as ENOTFOUND
           const error = new Error(`Error parsing Telegram response: ${resp.body}`);
+          error.code = 'EPARSE';
           error.response = resp;
           throw error;
         }
@@ -175,8 +172,14 @@ class TelegramBot extends EventEmitter {
         }
 
         const error = new Error(`${data.error_code} ${data.description}`);
+        error.code = 'ETELEGRAM';
         error.response = resp;
         error.response.body = data;
+        throw error;
+      }).catch(error => {
+        // error thrown from the 'then()' clause above
+        if (error.response) throw error;
+        error.code = 'EFATAL';
         throw error;
       });
   }
